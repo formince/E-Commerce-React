@@ -1,0 +1,18 @@
+Bu proje React + TypeScript ile geliştirilmiştir.  
+Windows işletim sistemi üzerinde çalışmaktadır.  
+
+Atomic Design prensibine uygun component yapısı:  
+- atoms: En küçük temel UI bileşenleri (Buton, Input, Icon).  
+- molecules: Atoms bileşenlerinden oluşan birleşik yapılar (FormGroup, Modal).  
+- organisms: Molecules ve atoms birleşiminden oluşan büyük yapılar (Header, Sidebar).  
+- templates: Sayfa layout’ları ve ana yapı (PageTemplate, DashboardLayout).  
+
+TailwindCSS ile responsive tasarım uygulanmaktadır.  
+Tema yönetimi merkezi theme dosyasında yapılmaktadır.  
+services klasörü API ve iş mantığını içerir, UI mantığı içermez.  
+hooks klasörü özel React hook’larını barındırır.  
+utils klasörü saf yardımcı fonksiyonlar içerir.  
+app klasörü uygulamanın giriş ve router yapılarını barındırır.  
+styles klasörü Tailwind base ve global stilleri içerir.  
+
+SOLID prensiplerine uygun, katmanlı ve modüler bir yapı kurulmuştur.  
