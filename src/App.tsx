@@ -11,6 +11,7 @@ import { AdminDashboardPage } from './app/admin/dashboard/page';
 import { AdminProductsPage } from './app/admin/products/page';
 import { NewProductPage } from './app/admin/products/new/page';
 import { EditProductPage } from './app/admin/products/edit/page';
+import { AdminCategoriesPage } from './app/admin/categories/page';
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
             <Route path="products" element={<AdminProductsPage />} />
             <Route path="products/new" element={<NewProductPage />} />
             <Route path="products/edit/:id" element={<EditProductPage />} />
+            <Route path="categories" element={<AdminCategoriesPage />} />
           </Route>
         </Routes>
       </Router>

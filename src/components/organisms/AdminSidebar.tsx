@@ -4,9 +4,9 @@ import { cn } from '../../lib/utils';
 import {
   LayoutDashboard,
   Package,
-  Users,
   Settings,
   LogOut,
+  FolderTree,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -22,9 +22,9 @@ const menuItems = [
     href: '/admin/products',
   },
   {
-    title: 'Kullanıcılar',
-    icon: Users,
-    href: '/admin/users',
+    title: 'Kategoriler',
+    icon: FolderTree,
+    href: '/admin/categories',
   },
   {
     title: 'Ayarlar',
