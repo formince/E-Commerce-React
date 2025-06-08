@@ -9,6 +9,8 @@ import { AdminLayout } from './app/admin/layout';
 import { AdminLoginPage } from './app/admin/login/page';
 import { AdminDashboardPage } from './app/admin/dashboard/page';
 import { AdminProductsPage } from './app/admin/products/page';
+import { NewProductPage } from './app/admin/products/new/page';
+import { EditProductPage } from './app/admin/products/edit/page';
 
 
 function App() {
@@ -28,7 +30,8 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="products" element={<AdminProductsPage />} />
-
+            <Route path="products/new" element={<NewProductPage />} />
+            <Route path="products/edit/:id" element={<EditProductPage />} />
           </Route>
         </Routes>
       </Router>
