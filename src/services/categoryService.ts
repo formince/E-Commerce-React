@@ -1,4 +1,6 @@
-import { get, post, put, del } from './api';
+import httpClient from './httpClient';
+import { API_ENDPOINTS } from '../config/api';
+import { AxiosError } from 'axios';
 import { CategoryDto } from '../types';
 
 const BASE_URL = '/categories';
@@ -26,59 +28,52 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const categoryService = {
   // Tüm kategorileri getir
   async getCategories(): Promise<Category[]> {
-    await delay(300);
-    return categories;
+    const response = await httpClient.get(API_ENDPOINTS.admin.categories.list);
+    return response.data;
   },
 
   // Tek bir kategori getir
   async getCategory(id: number): Promise<Category | null> {
-    await delay(200);
-    const category = categories.find(c => c.id === id);
-    if (!category) return null;
-    return category;
+    try {
+      const response = await httpClient.get(API_ENDPOINTS.admin.categories.detail(id));
+      return response.data;
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status === 404) return null;
+      throw error;
+    }
   },
 
   // Yeni kategori ekle
   async createCategory(data: CreateCategoryDto): Promise<Category> {
-    await delay(500);
-    const newCategory: Category = {
-      id: Math.max(...categories.map(c => c.id)) + 1,
-      ...data,
-    };
-    categories.push(newCategory);
-    return newCategory;
+    const response = await httpClient.post(API_ENDPOINTS.admin.categories.create, data);
+    return response.data;
   },
 
   // Kategori güncelle
   async updateCategory(id: number, data: CreateCategoryDto): Promise<Category | null> {
-    await delay(400);
-    const index = categories.findIndex(c => c.id === id);
-    if (index === -1) return null;
-
-    const updatedCategory = {
-      ...categories[index],
-      ...data,
-    };
-    categories[index] = updatedCategory;
-    return updatedCategory;
+    try {
+      const response = await httpClient.put(API_ENDPOINTS.admin.categories.update(id), data);
+      return response.data;
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status === 404) return null;
+      throw error;
+    }
   },
 
   // Kategori sil
   async deleteCategory(id: number): Promise<boolean> {
-    await delay(400);
-    const index = categories.findIndex(c => c.id === id);
-    if (index === -1) return false;
-
-    categories = categories.filter(c => c.id !== id);
-    return true;
+    try {
+      await httpClient.delete(API_ENDPOINTS.admin.categories.delete(id));
+      return true;
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status === 404) return false;
+      throw error;
+    }
   },
 
   // Kategori ara
   async searchCategories(query: string): Promise<Category[]> {
-    await delay(200);
-    const searchTerm = query.toLowerCase();
-    return categories.filter(c => 
-      c.name.toLowerCase().includes(searchTerm)
-    );
+    const response = await httpClient.get(`${API_ENDPOINTS.admin.categories.list}?search=${encodeURIComponent(query)}`);
+    return response.data;
   }
 }; 

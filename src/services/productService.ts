@@ -1,10 +1,12 @@
-import { get, post, put, del } from './api';
+import httpClient from './httpClient';
+import { API_ENDPOINTS } from '../config/api';
 import { 
   ProductListDto, 
   ProductDetailDto, 
   ProductCreateUpdateDto,
   PaginatedResponse 
 } from '../types';
+import { AxiosError } from 'axios';
 
 const BASE_URL = '/products';
 
@@ -62,97 +64,91 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const productService = {
   // Tüm ürünleri getir
   getAll: async (page: number = 1, pageSize: number = 10) => {
-    return get<PaginatedResponse<ProductListDto>>(`${BASE_URL}?page=${page}&pageSize=${pageSize}`);
+    return httpClient.get<PaginatedResponse<ProductListDto>>(`${BASE_URL}?page=${page}&pageSize=${pageSize}`);
   },
 
   // Ürün detayını getir
   getById: async (id: number) => {
-    return get<ProductDetailDto>(`${BASE_URL}/${id}`);
+    return httpClient.get<ProductDetailDto>(`${BASE_URL}/${id}`);
   },
 
   // Yeni ürün oluştur
   create: async (product: ProductCreateUpdateDto) => {
-    return post<ProductDetailDto>(BASE_URL, product);
+    return httpClient.post<ProductDetailDto>(BASE_URL, product);
   },
 
   // Ürün güncelle
   update: async (id: number, product: ProductCreateUpdateDto) => {
-    return put<ProductDetailDto>(`${BASE_URL}/${id}`, product);
+    return httpClient.put<ProductDetailDto>(`${BASE_URL}/${id}`, product);
   },
 
   // Ürün sil
   delete: async (id: number) => {
-    return del<void>(`${BASE_URL}/${id}`);
+    return httpClient.delete<void>(`${BASE_URL}/${id}`);
   },
 
   // Kategoriye göre ürünleri getir
   getByCategory: async (categoryId: number, page: number = 1, pageSize: number = 10) => {
-    return get<PaginatedResponse<ProductListDto>>(
+    return httpClient.get<PaginatedResponse<ProductListDto>>(
       `${BASE_URL}/category/${categoryId}?page=${page}&pageSize=${pageSize}`
     );
   },
 
   // Ürün ara
   search: async (query: string, page: number = 1, pageSize: number = 10) => {
-    return get<PaginatedResponse<ProductListDto>>(
+    return httpClient.get<PaginatedResponse<ProductListDto>>(
       `${BASE_URL}/search?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`
     );
   },
 
   // Tüm ürünleri getir
   async getProducts(): Promise<Product[]> {
-    await delay(500); // Simulate API delay
-    return products;
+    const response = await httpClient.get(API_ENDPOINTS.admin.products.list);
+    return response.data;
   },
 
   // Tek bir ürün getir
   async getProduct(id: number): Promise<Product | null> {
-    await delay(300);
-    const product = products.find(p => p.id === id);
-    if (!product) return null;
-    return product;
+    try {
+      const response = await httpClient.get(API_ENDPOINTS.admin.products.detail(id));
+      return response.data;
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status === 404) return null;
+      throw error;
+    }
   },
 
   // Yeni ürün ekle
   async createProduct(data: CreateProductDto): Promise<Product> {
-    await delay(800);
-    const newProduct: Product = {
-      id: Math.max(...products.map(p => p.id)) + 1,
-      ...data,
-      status: 'active',
-    };
-    products.push(newProduct);
-    return newProduct;
+    const response = await httpClient.post(API_ENDPOINTS.admin.products.create, data);
+    return response.data;
   },
 
   // Ürün güncelle
   async updateProduct(id: number, data: UpdateProductDto): Promise<Product | null> {
-    await delay(600);
-    const index = products.findIndex(p => p.id === id);
-    if (index === -1) return null;
-
-    const updatedProduct = {
-      ...products[index],
-      ...data,
-    };
-    products[index] = updatedProduct;
-    return updatedProduct;
+    try {
+      const response = await httpClient.put(API_ENDPOINTS.admin.products.update(id), data);
+      return response.data;
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status === 404) return null;
+      throw error;
+    }
   },
 
   // Ürün sil
   async deleteProduct(id: number): Promise<boolean> {
-    await delay(500);
-    const index = products.findIndex(p => p.id === id);
-    if (index === -1) return false;
-
-    products = products.filter(p => p.id !== id);
-    return true;
+    try {
+      await httpClient.delete(API_ENDPOINTS.admin.products.delete(id));
+      return true;
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status === 404) return false;
+      throw error;
+    }
   },
 
   // Ürün durumunu değiştir (aktif/pasif)
   async toggleProductStatus(id: number): Promise<Product | null> {
-    await delay(400);
-    const product = products.find(p => p.id === id);
+    const product = await this.getProduct(id);
     if (!product) return null;
 
     const newStatus = product.status === 'active' ? 'inactive' : 'active';
@@ -167,11 +163,7 @@ export const productService = {
 
   // Ürün ara
   async searchProducts(query: string): Promise<Product[]> {
-    await delay(300);
-    const searchTerm = query.toLowerCase();
-    return products.filter(p => 
-      p.name.toLowerCase().includes(searchTerm) || 
-      p.description.toLowerCase().includes(searchTerm)
-    );
+    const response = await httpClient.get(`${API_ENDPOINTS.admin.products.list}?search=${encodeURIComponent(query)}`);
+    return response.data;
   }
 }; 

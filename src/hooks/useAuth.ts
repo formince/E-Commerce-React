@@ -1,62 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { authService } from '../services/authService';
 
 interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: {
-    email: string;
+    username: string;
     role: string;
   } | null;
 }
 
 export const useAuth = () => {
-  const [state, setState] = useState<AuthState>({
-    isAuthenticated: false,
-    isLoading: true,
-    user: null,
+  // Lazy initial state - sadece ilk render'da localStorage kontrol et
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    const token = localStorage.getItem('admin_token');
+    const isAuth = !!token;
+    
+    return {
+      isAuthenticated: isAuth,
+      isLoading: false,
+      user: isAuth ? { username: 'admin', role: 'admin' } : null,
+    };
   });
 
-  useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('admin_token');
-    const user = localStorage.getItem('admin_user');
-
-    if (token && user) {
-      setState({
+  const login = async (username: string, password: string) => {
+    try {
+      const token = await authService.login({ username, password });
+      
+      // State'i güncelle
+      setAuthState({
         isAuthenticated: true,
         isLoading: false,
-        user: JSON.parse(user),
+        user: { username, role: 'admin' },
       });
-    } else {
-      setState((prev) => ({ ...prev, isLoading: false }));
-    }
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    // Bu kısımda gerçek API çağrısı yapılacak
-    // Şimdilik mock data kullanıyoruz
-    if (email === 'admin@example.com' && password === 'admin123') {
-      const user = { email, role: 'admin' };
-      const token = 'mock_token'; // Bu gerçek bir JWT token olacak
-
-      localStorage.setItem('admin_token', token);
-      localStorage.setItem('admin_user', JSON.stringify(user));
-
-      setState({
-        isAuthenticated: true,
-        isLoading: false,
-        user,
-      });
-    } else {
-      throw new Error('Invalid credentials');
+      
+      return token;
+    } catch (error) {
+      throw error;
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
-
-    setState({
+    authService.logout();
+    setAuthState({
       isAuthenticated: false,
       isLoading: false,
       user: null,
@@ -64,7 +50,7 @@ export const useAuth = () => {
   };
 
   return {
-    ...state,
+    ...authState,
     login,
     logout,
   };
