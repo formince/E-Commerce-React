@@ -11,26 +11,29 @@ export const API_ENDPOINTS = {
   // Admin endpoints
   admin: {
     products: {
-      list: `${API_BASE_URL}/api/Admin/products`,
-      detail: (id: number) => `${API_BASE_URL}/api/Admin/products/${id}`,
-      create: `${API_BASE_URL}/api/Admin/products`,
-      update: (id: number) => `${API_BASE_URL}/api/Admin/products/${id}`,
-      delete: (id: number) => `${API_BASE_URL}/api/Admin/products/${id}`,
+      list: `${API_BASE_URL}/api/AdminProduct/products`,
+      detail: (id: number) => `${API_BASE_URL}/api/AdminProduct/products/${id}`,
+      create: `${API_BASE_URL}/api/AdminProduct/products`,
+      update: (id: number) => `${API_BASE_URL}/api/AdminProduct/products/${id}`,
+      delete: (id: number) => `${API_BASE_URL}/api/AdminProduct/products/${id}`,
     },
     categories: {
-      list: `${API_BASE_URL}/api/Admin/categories`,
-      detail: (id: number) => `${API_BASE_URL}/api/Admin/categories/${id}`,
-      create: `${API_BASE_URL}/api/Admin/categories`,
-      update: (id: number) => `${API_BASE_URL}/api/Admin/categories/${id}`,
-      delete: (id: number) => `${API_BASE_URL}/api/Admin/categories/${id}`,
+      list: `${API_BASE_URL}/api/AdminCategories/categories`,
+      detail: (id: number) => `${API_BASE_URL}/api/AdminCategories/categories/${id}`,
+      create: `${API_BASE_URL}/api/AdminCategories/categories`,
+      update: (id: number) => `${API_BASE_URL}/api/AdminCategories/categories/${id}`,
+      delete: (id: number) => `${API_BASE_URL}/api/AdminCategories/categories/${id}`,
     },
   },
 
   // Public endpoints
   public: {
     products: {
-      list: `${API_BASE_URL}/api/products`,
-      detail: (id: number) => `${API_BASE_URL}/api/products/${id}`,
+      list: `${API_BASE_URL}/api/Products`,
+      detail: (id: number) => `${API_BASE_URL}/api/Products/${id}`,
+      search: (searchTerm: string) => `${API_BASE_URL}/api/Products?searchTerm=${encodeURIComponent(searchTerm)}`,
+      byCategory: (categoryId: number) => `${API_BASE_URL}/api/Products?categoryId=${categoryId}`,
+      searchWithCategory: (searchTerm: string, categoryId: number) => `${API_BASE_URL}/api/Products?searchTerm=${encodeURIComponent(searchTerm)}&categoryId=${categoryId}`,
     },
     categories: {
       list: `${API_BASE_URL}/api/categories`,

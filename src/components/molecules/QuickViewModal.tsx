@@ -1,10 +1,10 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { Product } from '../../types/product';
+import { ProductListDto } from '../../types';
 import { cn } from '../../lib/utils';
 
 interface QuickViewModalProps {
-  product: Product | null;
+  product: ProductListDto | null;
   onClose: () => void;
 }
 
@@ -38,7 +38,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
           {/* Image */}
           <div className="aspect-square rounded-lg overflow-hidden bg-accent/10">
             <img
-              src={product.image}
+              src={product.imageUrl}
               alt={product.name}
               className="w-full h-full object-cover"
             />
@@ -48,32 +48,17 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
           <div className="space-y-4">
             <div>
               <p className="text-sm text-primary/80 font-medium">
-                {product.category}
+                {product.categoryName}
               </p>
               <h3 className="text-xl font-semibold text-foreground mt-1">
                 {product.name}
               </h3>
             </div>
 
-            <p className="text-muted-foreground">
-              {product.description}
-            </p>
-
             <div className="pt-4 border-t border-border">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-foreground">
-                  {product.price.toLocaleString('tr-TR', {
-                    style: 'currency',
-                    currency: 'TRY',
-                  })}
-                </span>
-                <span className={cn(
-                  'px-3 py-1 rounded-full text-sm font-medium',
-                  product.stock > 0
-                    ? 'bg-green-500/10 text-green-500'
-                    : 'bg-red-500/10 text-red-500'
-                )}>
-                  {product.stock > 0 ? `${product.stock} adet stokta` : 'Tükendi'}
+                  ₺{product.price.toFixed(2)}
                 </span>
               </div>
             </div>

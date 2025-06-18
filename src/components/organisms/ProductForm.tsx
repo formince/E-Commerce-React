@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { CategoryCombobox } from '../molecules/CategoryCombobox';
+import { categoryService } from '../../services/categoryService';
+
+interface Category {
+  id: number;
+  name: string;
+}
 
 interface ProductFormData {
   name: string;
@@ -8,6 +15,7 @@ interface ProductFormData {
   imageUrl: string;
   stockQuantity: number;
   categoryId: number;
+  price: number;
 }
 
 interface ProductFormProps {
@@ -15,13 +23,6 @@ interface ProductFormProps {
   onSubmit: (data: ProductFormData) => void;
   isLoading?: boolean;
 }
-
-const categories = [
-  { id: 1, name: 'Kalemler' },
-  { id: 2, name: 'Defterler' },
-  { id: 3, name: 'Dosyalar' },
-  { id: 4, name: 'Boyalar' },
-];
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   initialData,
@@ -33,10 +34,39 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     description: '',
     imageUrl: '',
     stockQuantity: 1,
-    categoryId: 1,
+    categoryId: 0,
+    price: 0,
   });
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof ProductFormData, string>>>({});
+
+  // Kategorileri API'den yükle
+  useEffect(() => {
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const categoriesData = await categoryService.getCategories();
+        setCategories(categoriesData);
+        
+        // Eğer initial data varsa, kategori adını bul
+        if (initialData?.categoryId) {
+          const category = categoriesData.find(cat => cat.id === initialData.categoryId);
+          if (category) {
+            setSelectedCategoryName(category.name);
+          }
+        }
+      } catch (error) {
+        console.error('Kategoriler yüklenirken hata oluştu:', error);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, [initialData]);
 
   const validateForm = () => {
     const newErrors: Partial<Record<keyof ProductFormData, string>> = {};
@@ -45,6 +75,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     if (!formData.description) newErrors.description = 'Ürün açıklaması zorunludur';
     if (!formData.imageUrl) newErrors.imageUrl = 'Görsel URL zorunludur';
     if (formData.stockQuantity < 0) newErrors.stockQuantity = 'Stok miktarı 0\'dan küçük olamaz';
+    if (!formData.categoryId) newErrors.categoryId = 'Kategori seçimi zorunludur';
+    if (formData.price <= 0) newErrors.price = 'Fiyat 0\'dan büyük olmalıdır';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -53,16 +85,40 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
+      console.log('ProductForm - Form verileri:', formData);
+      console.log('ProductForm - Seçilen kategori ID:', formData.categoryId);
+      console.log('ProductForm - Seçilen kategori adı:', selectedCategoryName);
       onSubmit(formData);
+    } else {
+      console.log('ProductForm - Form validasyonu başarısız:', errors);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'stockQuantity' ? parseInt(value) || 0 : value
+      [name]: name === 'stockQuantity' || name === 'price' ? parseFloat(value) || 0 : value
     }));
+  };
+
+  const handleCategoryChange = (categoryName: string | null) => {
+    setSelectedCategoryName(categoryName);
+    
+    if (categoryName) {
+      const category = categories.find(cat => cat.name === categoryName);
+      if (category) {
+        setFormData(prev => ({
+          ...prev,
+          categoryId: category.id
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        categoryId: 0
+      }));
+    }
   };
 
   return (
@@ -124,22 +180,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
         {/* Kategori */}
         <div>
-          <label htmlFor="categoryId" className="block text-sm font-medium text-card-foreground mb-1">
+          <label className="block text-sm font-medium text-card-foreground mb-1">
             Kategori
           </label>
-          <select
-            id="categoryId"
-            name="categoryId"
-            value={formData.categoryId}
-            onChange={handleChange}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
-          >
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+          {isLoadingCategories ? (
+            <div className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+              Kategoriler yükleniyor...
+            </div>
+          ) : (
+            <CategoryCombobox
+              categories={categories}
+              selectedCategory={selectedCategoryName}
+              onCategoryChange={handleCategoryChange}
+              placeholder="Kategori Seçin"
+            />
+          )}
+          {errors.categoryId && (
+            <p className="mt-1 text-sm text-destructive">{errors.categoryId}</p>
+          )}
         </div>
 
         {/* Stok Miktarı */}
@@ -159,6 +217,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <p className="mt-1 text-sm text-destructive">{errors.stockQuantity}</p>
           )}
         </div>
+
+        {/* Fiyat */}
+        <div>
+          <label htmlFor="price" className="block text-sm font-medium text-card-foreground mb-1">
+            Fiyat (₺)
+          </label>
+          <Input
+            id="price"
+            name="price"
+            type="number"
+            step="0.01"
+            value={formData.price}
+            onChange={handleChange}
+            min={0}
+            placeholder="0.00"
+          />
+          {errors.price && (
+            <p className="mt-1 text-sm text-destructive">{errors.price}</p>
+          )}
+        </div>
       </div>
 
       <div className="flex justify-end space-x-4">
@@ -169,7 +247,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         >
           İptal
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading || isLoadingCategories}>
           {isLoading ? (
             <div className="flex items-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />

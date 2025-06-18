@@ -4,6 +4,7 @@ export interface ProductListDto {
   name: string;
   imageUrl: string;
   categoryName: string;
+  price: number;
 }
 
 export interface ProductDetailDto {
@@ -13,6 +14,7 @@ export interface ProductDetailDto {
   imageUrl: string;
   stockQuantity: number;
   categoryName: string;
+  price: number;
 }
 
 export interface ProductCreateUpdateDto {

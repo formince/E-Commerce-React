@@ -124,7 +124,7 @@ export const AdminProductsPage: React.FC = () => {
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Ürün</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Kategori</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Fiyat</th>
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Stok</th>
+                {/* <th className="text-left p-4 text-sm font-medium text-muted-foreground">Stok</th> */}
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Durum</th>
                 <th className="text-right p-4 text-sm font-medium text-muted-foreground">İşlemler</th>
               </tr>
@@ -138,14 +138,16 @@ export const AdminProductsPage: React.FC = () => {
                       <p className="text-sm text-muted-foreground">#{product.id}</p>
                     </div>
                   </td>
-                  <td className="p-4 text-muted-foreground">{product.category}</td>
+                  <td className="p-4 text-muted-foreground">{product.categoryName}</td>
                   <td className="p-4 text-muted-foreground">
+                       
                     {product.price.toLocaleString('tr-TR', {
                       style: 'currency',
                       currency: 'TRY',
                     })}
+
                   </td>
-                  <td className="p-4 text-muted-foreground">{product.stockQuantity}</td>
+                 {/* <td className="p-4 text-muted-foreground">{product.stock}</td> */}   {/* stock kısmı yok şu anda */}
                   <td className="p-4">
                     <button
                       onClick={() => handleStatusToggle(product.id)}

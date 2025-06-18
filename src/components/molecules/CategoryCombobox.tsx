@@ -4,23 +4,30 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Command as CommandPrimitive } from "cmdk";
 import { cn } from "../../lib/utils";
 
-const categories = [
-  "Tümü",
-  "Kalemler",
-  "Defterler",
-  "Kitaplar",
-  "Sanat Malzemeleri",
-  "Okul Malzemeleri",
-];
-
-interface CategoryComboboxProps {
-  selectedCategory: string | null;
-  onCategoryChange: (category: string | null) => void;
+interface Category {
+  id: number;
+  name: string;
 }
 
-export function CategoryCombobox({ selectedCategory, onCategoryChange }: CategoryComboboxProps) {
+interface CategoryComboboxProps {
+  categories: Category[];
+  selectedCategory: string | null;
+  onCategoryChange: (category: string | null) => void;
+  placeholder?: string;
+}
+
+export function CategoryCombobox({ 
+  categories, 
+  selectedCategory, 
+  onCategoryChange, 
+  placeholder = "Kategori Seçin" 
+}: CategoryComboboxProps) {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState(selectedCategory || "Tümü");
+  const [value, setValue] = React.useState(selectedCategory || placeholder);
+
+  React.useEffect(() => {
+    setValue(selectedCategory || placeholder);
+  }, [selectedCategory, placeholder]);
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -53,31 +60,37 @@ export function CategoryCombobox({ selectedCategory, onCategoryChange }: Categor
             <div className="border-b border-border/50">
               <div className="flex items-center gap-2 px-4 py-3">
                 <Tags className="h-4 w-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Kategori Seçin</p>
+                <p className="text-sm text-muted-foreground">{placeholder}</p>
               </div>
             </div>
             <div className="max-h-[300px] overflow-y-auto">
-              {categories.map((category) => (
-                <div
-                  key={category}
-                  onClick={() => {
-                    setValue(category);
-                    onCategoryChange(category === "Tümü" ? null : category);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 text-sm cursor-pointer",
-                    "hover:bg-accent/50 transition-colors",
-                    "focus:bg-accent focus:outline-none",
-                    value === category && "bg-accent/50"
-                  )}
-                >
-                  <div className="flex items-center justify-center w-4 h-4">
-                    {value === category && <Check className="h-4 w-4 text-primary" />}
-                  </div>
-                  <span>{category}</span>
+              {categories.length === 0 ? (
+                <div className="px-4 py-2 text-sm text-muted-foreground">
+                  Kategori bulunamadı
                 </div>
-              ))}
+              ) : (
+                categories.map((category) => (
+                  <div
+                    key={category.id}
+                    onClick={() => {
+                      setValue(category.name);
+                      onCategoryChange(category.name);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 text-sm cursor-pointer",
+                      "hover:bg-accent/50 transition-colors",
+                      "focus:bg-accent focus:outline-none",
+                      value === category.name && "bg-accent/50"
+                    )}
+                  >
+                    <div className="flex items-center justify-center w-4 h-4">
+                      {value === category.name && <Check className="h-4 w-4 text-primary" />}
+                    </div>
+                    <span>{category.name}</span>
+                  </div>
+                ))
+              )}
             </div>
           </CommandPrimitive>
         </Dialog.Content>

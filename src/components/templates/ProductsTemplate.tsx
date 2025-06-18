@@ -1,26 +1,94 @@
-import React, { useState, useMemo } from 'react';
-import { mockProducts } from '../../data/mockProducts';
-import { Product } from '../../types/product';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ProductListDto } from '../../types';
 import { cn } from '../../lib/utils';
 import { SortSelect } from '../molecules/SortSelect';
 import { QuickViewModal } from '../molecules/QuickViewModal';
-import { Package2, ShoppingCart, Search, Eye, ArrowUpRight } from 'lucide-react';
+import { Package2, ShoppingCart, Search, Eye, ArrowUpRight, Loader2 } from 'lucide-react';
 import { Header } from '../organisms/Header';
 import { Footer } from '../organisms/Footer';
 import { CategoryCombobox } from '../molecules/CategoryCombobox';
 import { Link, useSearchParams } from 'react-router-dom';
+import { productService } from '../../services/productService';
 
 export const ProductsTemplate: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductListDto | null>(null);
+  const [products, setProducts] = useState<ProductListDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<{id: number, name: string}[]>([]);
   const productsPerPage = 8;
+
+  // API'den ürünleri yükle
+  useEffect(() => {
+    const loadProducts = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        let productsData: ProductListDto[];
+        
+        console.log('ProductsTemplate - Yükleme başladı:', { searchQuery, selectedCategory, selectedCategoryId });
+        
+        if (searchQuery && selectedCategoryId) {
+          // Hem arama hem kategori seçili
+          console.log('ProductsTemplate - Arama + kategori yapılıyor:', { searchQuery, selectedCategoryId });
+          productsData = await productService.searchPublicProductsWithCategory(searchQuery, selectedCategoryId);
+        } else if (searchQuery) {
+          // Sadece arama yapılıyorsa
+          console.log('ProductsTemplate - Arama yapılıyor:', searchQuery);
+          productsData = await productService.searchPublicProducts(searchQuery);
+        } else if (selectedCategoryId) {
+          // Sadece kategori seçiliyse
+          console.log('ProductsTemplate - Kategori filtreleniyor:', selectedCategoryId);
+          productsData = await productService.getPublicProductsByCategory(selectedCategoryId);
+        } else {
+          // Tüm ürünleri getir
+          console.log('ProductsTemplate - Tüm ürünler yükleniyor');
+          productsData = await productService.getPublicProducts();
+        }
+        
+        setProducts(productsData);
+        console.log('ProductsTemplate - Yüklenen ürünler:', productsData);
+      } catch (error: any) {
+        console.error('ProductsTemplate - Ürünler yüklenirken hata:', error);
+        setError('Ürünler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [searchQuery, selectedCategoryId]);
+
+  // Kategorileri yükle
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        // Ürünlerden benzersiz kategorileri çıkar
+        const uniqueCategories = Array.from(
+          new Set(products.map(product => product.categoryName))
+        ).map((name, index) => ({ id: index + 1, name }));
+        
+        setCategories(uniqueCategories);
+      } catch (error) {
+        console.error('Kategoriler yüklenirken hata:', error);
+      }
+    };
+
+    if (products.length > 0) {
+      loadCategories();
+    }
+  }, [products]);
 
   // Update search params when search query changes
   const handleSearchChange = (value: string) => {
+    console.log('ProductsTemplate - Arama değişti:', value);
     setSearchQuery(value);
     if (value) {
       setSearchParams({ search: value });
@@ -30,24 +98,27 @@ export const ProductsTemplate: React.FC = () => {
     setCurrentPage(1); // Reset to first page on search
   };
 
+  // Kategori değişikliği
+  const handleCategoryChange = (categoryName: string | null) => {
+    console.log('ProductsTemplate - Kategori değişti:', categoryName);
+    setSelectedCategory(categoryName);
+    
+    if (categoryName) {
+      // Kategori adından ID'yi bul
+      const category = categories.find(cat => cat.name === categoryName);
+      if (category) {
+        setSelectedCategoryId(category.id);
+      }
+    } else {
+      setSelectedCategoryId(null);
+    }
+    
+    setCurrentPage(1); // Reset to first page on category change
+  };
+
   // Filter and sort products
   const filteredAndSortedProducts = useMemo(() => {
-    let result = [...mockProducts];
-
-    // Apply category filter
-    if (selectedCategory) {
-      result = result.filter(product => product.category === selectedCategory);
-    }
-
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(product =>
-        product.name.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query)
-      );
-    }
+    let result = [...products];
 
     // Apply sorting
     switch (sortBy) {
@@ -57,12 +128,18 @@ export const ProductsTemplate: React.FC = () => {
       case 'name_desc':
         result.sort((a, b) => b.name.localeCompare(a.name));
         break;
+      case 'price_asc':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case 'price_desc':
+        result.sort((a, b) => b.price - a.price);
+        break;
       default:
         break;
     }
 
     return result;
-  }, [mockProducts, selectedCategory, searchQuery, sortBy]);
+  }, [products, sortBy]);
 
   // Calculate pagination
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -110,8 +187,9 @@ export const ProductsTemplate: React.FC = () => {
                     Kategoriler
                   </label>
                   <CategoryCombobox
+                    categories={categories}
                     selectedCategory={selectedCategory}
-                    onCategoryChange={setSelectedCategory}
+                    onCategoryChange={handleCategoryChange}
                   />
                 </div>
               </div>
@@ -136,8 +214,31 @@ export const ProductsTemplate: React.FC = () => {
                 </div>
               </div>
 
+              {/* Loading State */}
+              {isLoading && (
+                <div className="text-center py-12">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                  <p className="mt-4 text-gray-600 dark:text-gray-400">Ürünler yükleniyor...</p>
+                </div>
+              )}
+
+              {/* Error State */}
+              {error && !isLoading && (
+                <div className="text-center py-12">
+                  <Package2 className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Hata Oluştu</h3>
+                  <p className="mt-2 text-gray-600 dark:text-gray-400">{error}</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    Tekrar Dene
+                  </button>
+                </div>
+              )}
+
               {/* Products Grid */}
-              {currentProducts.length > 0 ? (
+              {!isLoading && !error && currentProducts.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                   {currentProducts.map((product) => (
                     <ProductCard 
@@ -147,7 +248,10 @@ export const ProductsTemplate: React.FC = () => {
                     />
                   ))}
                 </div>
-              ) : (
+              )}
+
+              {/* No Products State */}
+              {!isLoading && !error && currentProducts.length === 0 && (
                 <div className="text-center py-12">
                   <Package2 className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
                   <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">Ürün Bulunamadı</h3>
@@ -158,7 +262,7 @@ export const ProductsTemplate: React.FC = () => {
               )}
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {!isLoading && !error && totalPages > 1 && (
                 <div className="mt-8 flex justify-center gap-2">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button
@@ -192,7 +296,7 @@ export const ProductsTemplate: React.FC = () => {
 };
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductListDto;
   onQuickView: () => void;
 }
 
@@ -203,15 +307,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
         {/* Image Container */}
         <div className="relative h-[320px] overflow-hidden bg-accent/10">
           <img
-            src={product.image}
+            src={product.imageUrl}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
         </div>
-
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
         {/* Quick View Button */}
         <button
@@ -231,30 +332,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
         </button>
 
         {/* Content */}
-        <div className="absolute bottom-0 left-0 right-0 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="space-y-1.5">
-              <span className="text-sm font-medium text-primary/90">
-                {product.category}
-              </span>
-              <h3 className="text-lg font-semibold text-white leading-snug tracking-tight line-clamp-2">
-                {product.name}
-              </h3>
-              <p className="text-sm text-zinc-200 line-clamp-2 tracking-tight">
-                {product.description}
-              </p>
-            </div>
-            <div
-              className={cn(
-                "p-2 rounded-full",
-                "bg-white/10",
-                "backdrop-blur-md",
-                "group-hover:bg-white/20",
-                "transition-colors duration-300"
-              )}
-            >
-              <ArrowUpRight className="w-4 h-4 text-white group-hover:-rotate-12 transition-transform duration-300" />
-            </div>
+        <div className="p-5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-t border-border/30">
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-primary/90">
+              {product.categoryName}
+            </span>
+            <h3 className="text-lg font-semibold text-foreground leading-snug tracking-tight line-clamp-2">
+              {product.name}
+            </h3>
+            <p className="text-lg font-bold text-foreground">
+              ₺{product.price.toFixed(2)}
+            </p>
           </div>
         </div>
       </div>

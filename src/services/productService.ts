@@ -4,7 +4,7 @@ import {
   ProductListDto, 
   ProductDetailDto, 
   ProductCreateUpdateDto,
-  PaginatedResponse 
+  PaginatedResponse
 } from '../types';
 import { AxiosError } from 'axios';
 
@@ -107,12 +107,15 @@ export const productService = {
     return response.data;
   },
 
-  // Tek bir ürün getir
-  async getProduct(id: number): Promise<Product | null> {
+  // Tek bir ürün getir (public)
+  async getProduct(id: number): Promise<ProductDetailDto | null> {
     try {
-      const response = await httpClient.get(API_ENDPOINTS.admin.products.detail(id));
+      console.log('ProductService - Public product detail çağrısı:', API_ENDPOINTS.public.products.detail(id));
+      const response = await httpClient.get(API_ENDPOINTS.public.products.detail(id));
+      console.log('ProductService - Public product detail response:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('ProductService - Public product detail hatası:', error);
       if ((error as AxiosError)?.response?.status === 404) return null;
       throw error;
     }
@@ -120,8 +123,28 @@ export const productService = {
 
   // Yeni ürün ekle
   async createProduct(data: CreateProductDto): Promise<Product> {
-    const response = await httpClient.post(API_ENDPOINTS.admin.products.create, data);
-    return response.data;
+    try {
+      console.log('ProductService - Gönderilen veri:', data);
+      console.log('ProductService - API Endpoint:', API_ENDPOINTS.admin.products.create);
+      
+      const response = await httpClient.post(API_ENDPOINTS.admin.products.create, data);
+      console.log('ProductService - Başarılı response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('ProductService - Hata detayları:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          data: error.config?.data
+        }
+      });
+      throw error;
+    }
   },
 
   // Ürün güncelle
@@ -147,12 +170,13 @@ export const productService = {
   },
 
   // Ürün durumunu değiştir (aktif/pasif)
-  async toggleProductStatus(id: number): Promise<Product | null> {
-    const product = await this.getProduct(id);
+  async toggleProductStatus(id: number): Promise<ProductDetailDto | null> {
+    const product = await this.getAdminProduct(id);
     if (!product) return null;
 
-    const newStatus = product.status === 'active' ? 'inactive' : 'active';
-    return this.updateProduct(id, { status: newStatus });
+    // ProductDetailDto'da status yok, bu yüzden sadece ürünü döndürüyoruz
+    // Status değişikliği için ayrı bir endpoint gerekebilir
+    return product;
   },
 
   // Kategoriye göre ürünleri filtrele
@@ -165,5 +189,68 @@ export const productService = {
   async searchProducts(query: string): Promise<Product[]> {
     const response = await httpClient.get(`${API_ENDPOINTS.admin.products.list}?search=${encodeURIComponent(query)}`);
     return response.data;
-  }
+  },
+
+  // Public ürünleri getir (user'lar için)
+  async getPublicProducts(): Promise<ProductListDto[]> {
+    try {
+      console.log('ProductService - Public products çağrısı:', API_ENDPOINTS.public.products.list);
+      const response = await httpClient.get(API_ENDPOINTS.public.products.list);
+      console.log('ProductService - Public products response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('ProductService - Public products hatası:', error);
+      throw error;
+    }
+  },
+
+  // Kategoriye göre public ürünleri getir
+  async getPublicProductsByCategory(categoryId: number): Promise<ProductListDto[]> {
+    try {
+      console.log('ProductService - Category products çağrısı:', API_ENDPOINTS.public.products.byCategory(categoryId));
+      const response = await httpClient.get(API_ENDPOINTS.public.products.byCategory(categoryId));
+      console.log('ProductService - Category products response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('ProductService - Category products hatası:', error);
+      throw error;
+    }
+  },
+
+  // Public ürün ara
+  async searchPublicProducts(searchTerm: string): Promise<ProductListDto[]> {
+    try {
+      console.log('ProductService - Search products çağrısı:', API_ENDPOINTS.public.products.search(searchTerm));
+      const response = await httpClient.get(API_ENDPOINTS.public.products.search(searchTerm));
+      console.log('ProductService - Search products response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('ProductService - Search products hatası:', error);
+      throw error;
+    }
+  },
+
+  // Public ürün ara ve kategori filtrele
+  async searchPublicProductsWithCategory(searchTerm: string, categoryId: number): Promise<ProductListDto[]> {
+    try {
+      console.log('ProductService - Search with category çağrısı:', API_ENDPOINTS.public.products.searchWithCategory(searchTerm, categoryId));
+      const response = await httpClient.get(API_ENDPOINTS.public.products.searchWithCategory(searchTerm, categoryId));
+      console.log('ProductService - Search with category response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('ProductService - Search with category hatası:', error);
+      throw error;
+    }
+  },
+
+  // Tek bir ürün getir (admin)
+  async getAdminProduct(id: number): Promise<ProductDetailDto | null> {
+    try {
+      const response = await httpClient.get(API_ENDPOINTS.admin.products.detail(id));
+      return response.data;
+    } catch (error) {
+      if ((error as AxiosError)?.response?.status === 404) return null;
+      throw error;
+    }
+  },
 }; 
