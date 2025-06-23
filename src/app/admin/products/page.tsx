@@ -125,6 +125,7 @@ export const AdminProductsPage: React.FC = () => {
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Kategori</th>
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Fiyat</th>
                 {/* <th className="text-left p-4 text-sm font-medium text-muted-foreground">Stok</th> */}
+                {/* stok bilgisi gizlendi şu anda */}
                 <th className="text-left p-4 text-sm font-medium text-muted-foreground">Durum</th>
                 <th className="text-right p-4 text-sm font-medium text-muted-foreground">İşlemler</th>
               </tr>
