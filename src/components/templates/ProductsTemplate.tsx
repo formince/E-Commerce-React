@@ -58,6 +58,7 @@ export const ProductsTemplate: React.FC = () => {
       } catch (error: any) {
         console.error('ProductsTemplate - Ürünler yüklenirken hata:', error);
         setError('Ürünler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+        setProducts([]); // Boş array set et
       } finally {
         setIsLoading(false);
       }
@@ -307,8 +308,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
         {/* Image Container */}
         <div className="relative h-[320px] overflow-hidden bg-accent/10">
           <img
-            src={product.imageUrl}
-            alt={product.name}
+            src={product.imageUrl || 'https://via.placeholder.com/400x320?text=Resim+Yok'}
+            alt={product.name || 'Ürün'}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
@@ -335,13 +336,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
         <div className="p-5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-t border-border/30">
           <div className="space-y-2">
             <span className="text-sm font-medium text-primary/90">
-              {product.categoryName}
+              {product.categoryName || 'Kategorisiz'}
             </span>
             <h3 className="text-lg font-semibold text-foreground leading-snug tracking-tight line-clamp-2">
-              {product.name}
+              {product.name || 'İsimsiz Ürün'}
             </h3>
             <p className="text-lg font-bold text-foreground">
-              ₺{product.price.toFixed(2)}
+              ₺{(product.price || 0).toFixed(2)}
             </p>
           </div>
         </div>

@@ -18,6 +18,7 @@ export const AdminProductsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; productId: number | null }>({
     open: false,
     productId: null,
@@ -29,10 +30,13 @@ export const AdminProductsPage: React.FC = () => {
 
   const loadProducts = async () => {
     try {
+      setError(null);
       const data = await productService.getProducts();
       setProducts(data);
     } catch (error) {
       console.error('Ürünler yüklenirken hata oluştu:', error);
+      setError('Ürünler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+      setProducts([]); // Boş array set et
     } finally {
       setIsLoading(false);
     }
@@ -98,6 +102,29 @@ export const AdminProductsPage: React.FC = () => {
         </Button>
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/20 dark:border-red-800">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              Hata
+            </p>
+            <p className="text-sm text-red-700 dark:text-red-300">
+              {error}
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.reload()}
+            className="text-red-600 border-red-300 hover:bg-red-100 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-950/40"
+          >
+            Yenile
+          </Button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -131,56 +158,74 @@ export const AdminProductsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-b border-border/50 last:border-0">
-                  <td className="p-4">
-                    <div>
-                      <p className="font-medium text-card-foreground">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">#{product.id}</p>
-                    </div>
-                  </td>
-                  <td className="p-4 text-muted-foreground">{product.categoryName}</td>
-                  <td className="p-4 text-muted-foreground">
-                       
-                    {product.price.toLocaleString('tr-TR', {
-                      style: 'currency',
-                      currency: 'TRY',
-                    })}
-
-                  </td>
-                 {/* <td className="p-4 text-muted-foreground">{product.stock}</td> */}   {/* stock kısmı yok şu anda */}
-                  <td className="p-4">
-                    <button
-                      onClick={() => handleStatusToggle(product.id)}
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                        product.status === 'active'
-                          ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'
-                      }`}
-                    >
-                      {product.status === 'active' ? 'Aktif' : 'Pasif'}
-                    </button>
-                  </td>
-                  <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+              {products.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <AlertCircle className="h-8 w-8" />
+                      <p>Henüz ürün bulunmuyor</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => navigate('/admin/products/new')}
                       >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteDialog({ open: true, productId: product.id })}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        İlk Ürünü Ekle
                       </Button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                products.map((product) => (
+                  <tr key={product.id} className="border-b border-border/50 last:border-0">
+                    <td className="p-4">
+                      <div>
+                        <p className="font-medium text-card-foreground">{product.name || 'İsimsiz Ürün'}</p>
+                        <p className="text-sm text-muted-foreground">#{product.id || 'N/A'}</p>
+                      </div>
+                    </td>
+                    <td className="p-4 text-muted-foreground">{product.categoryName || 'Kategorisiz'}</td>
+                    <td className="p-4 text-muted-foreground">
+                         
+                      {(product.price || 0).toLocaleString('tr-TR', {
+                        style: 'currency',
+                        currency: 'TRY',
+                      })}
+
+                    </td>
+                   {/* <td className="p-4 text-muted-foreground">{product.stock}</td> */}   {/* stock kısmı yok şu anda */}
+                    <td className="p-4">
+                      <button
+                        onClick={() => handleStatusToggle(product.id)}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                          (product.status || 'active') === 'active'
+                            ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'
+                        }`}
+                      >
+                        {(product.status || 'active') === 'active' ? 'Aktif' : 'Pasif'}
+                      </button>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteDialog({ open: true, productId: product.id })}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
